@@ -21,8 +21,6 @@ public class KaiserDemo {
         System.out.println("密文:" + encrypt);
         String decrypt = decrypt(encrypt, key);
         System.out.println("明文:" + decrypt);
-
-
     }
 
     /**
