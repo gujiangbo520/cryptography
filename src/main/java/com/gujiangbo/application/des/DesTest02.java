@@ -3,20 +3,21 @@ package com.gujiangbo.application.des;
 import com.sun.org.apache.xml.internal.security.utils.Base64;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class DesTest02 {
     // DES加密算法,key的大小必须是8个字节
 
     public static void main(String[] args) throws Exception {
-        String input = "硅谷";
+        String input = "硅谷12";
         // DES加密算法，key的大小必须是8个字节
         String key = "12345678";
         // 指定获取Cipher的算法,如果没有指定加密模式和填充模式,ECB/PKCS5Padding就是默认值
-        //     String transformation = "DES"; // 9PQXVUIhaaQ=
+        //   String transformation = "DES"; // 9PQXVUIhaaQ=
         //String transformation = "DES/ECB/PKCS5Padding"; // 9PQXVUIhaaQ=
         // CBC模式,必须指定初始向量,初始向量中密钥的长度必须是8个字节
-        //String transformation = "DES/CBC/PKCS5Padding"; // 9PQXVUIhaaQ=
+       // String transformation = "DES/CBC/PKCS5Padding"; // 9PQXVUIhaaQ=
         // NoPadding模式,原文的长度必须是8个字节的整倍数 ，所以必须把 硅谷改成硅谷12
         String transformation = "DES/CBC/NoPadding"; // 9PQXVUIhaaQ=
         // 指定获取密钥的算法
@@ -48,9 +49,9 @@ public class DesTest02 {
         // ENCRYPT_MODE：加密模式
         // DECRYPT_MODE: 解密模式
         // 初始向量，参数表示跟谁进行异或，初始向量的长度必须是8位
-//        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
         // 初始化加密模式和算法
-        cipher.init(Cipher.ENCRYPT_MODE, sks);
+        cipher.init(Cipher.ENCRYPT_MODE, sks,iv);
         // 加密
         byte[] bytes = cipher.doFinal(input.getBytes());
 
@@ -75,8 +76,8 @@ public class DesTest02 {
         Cipher cipher = Cipher.getInstance(transformation);
         // 指定密钥规则
         SecretKeySpec sks = new SecretKeySpec(key.getBytes(), algorithm);
-//        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
-        cipher.init(Cipher.DECRYPT_MODE, sks);
+        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+        cipher.init(Cipher.DECRYPT_MODE, sks,iv);
         // 3. 解密
         byte[] bytes = cipher.doFinal(Base64.decode(input));
 

@@ -1,5 +1,3 @@
-# cryptography
-本项目来源:尚硅谷老师笔记记录，学习使用。
 # 密码学
 
 ## 第一章 密码学
@@ -1303,4 +1301,820 @@ RSA/ECB/OAEPWithSHA-256AndMGF1Padding (1024, 2048)
 
 加密模式和填充模式例子:
 
+```java
+package com.gujiangbo.application.des;
 
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
+public class DesTest02 {
+    // DES加密算法,key的大小必须是8个字节
+
+    public static void main(String[] args) throws Exception {
+        String input = "硅谷";
+        // DES加密算法，key的大小必须是8个字节
+        String key = "12345678";
+        // 指定获取Cipher的算法,如果没有指定加密模式和填充模式,ECB/PKCS5Padding就是默认值
+        String transformation = "DES"; // 9PQXVUIhaaQ=
+        //String transformation = "DES/ECB/PKCS5Padding"; // 9PQXVUIhaaQ=
+        // CBC模式,必须指定初始向量,初始向量中密钥的长度必须是8个字节
+        //String transformation = "DES/CBC/PKCS5Padding"; // 9PQXVUIhaaQ=
+        // NoPadding模式,原文的长度必须是8个字节的整倍数 ，所以必须把 硅谷改成硅谷12
+        // String transformation = "DES/CBC/NoPadding"; // 9PQXVUIhaaQ=
+        // 指定获取密钥的算法
+        String algorithm = "DES";
+        String encryptDES = encryptDES(input, key, transformation, algorithm);
+        System.out.println("加密:" + encryptDES);
+        String s = decryptDES(encryptDES, key, transformation, algorithm);
+        System.out.println("解密:" + s);
+
+    }
+
+    /**
+     * 使用DES加密数据
+     *
+     * @param input          : 原文
+     * @param key            : 密钥(DES,密钥的长度必须是8个字节)
+     * @param transformation : 获取Cipher对象的算法
+     * @param algorithm      : 获取密钥的算法
+     * @return : 密文
+     * @throws Exception
+     */
+    private static String encryptDES(String input, String key, String transformation, String algorithm) throws Exception {
+        // 获取加密对象
+        Cipher cipher = Cipher.getInstance(transformation);
+        // 创建加密规则
+        // 第一个参数key的字节
+        // 第二个参数表示加密算法
+        SecretKeySpec sks = new SecretKeySpec(key.getBytes(), algorithm);
+        // ENCRYPT_MODE：加密模式
+        // DECRYPT_MODE: 解密模式
+        // 初始向量，参数表示跟谁进行异或，初始向量的长度必须是8位
+//        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+        // 初始化加密模式和算法
+        cipher.init(Cipher.ENCRYPT_MODE, sks);
+        // 加密
+        byte[] bytes = cipher.doFinal(input.getBytes());
+
+        // 输出加密后的数据
+        String encode = Base64.encode(bytes);
+
+        return encode;
+    }
+
+    /**
+     * 使用DES解密
+     *
+     * @param input          : 密文
+     * @param key            : 密钥
+     * @param transformation : 获取Cipher对象的算法
+     * @param algorithm      : 获取密钥的算法
+     * @throws Exception
+     * @return: 原文
+     */
+    private static String decryptDES(String input, String key, String transformation, String algorithm) throws Exception {
+        // 1,获取Cipher对象
+        Cipher cipher = Cipher.getInstance(transformation);
+        // 指定密钥规则
+        SecretKeySpec sks = new SecretKeySpec(key.getBytes(), algorithm);
+//        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+        cipher.init(Cipher.DECRYPT_MODE, sks);
+        // 3. 解密
+        byte[] bytes = cipher.doFinal(Base64.decode(input));
+
+        return new String(bytes);
+    }
+}
+```
+
+程序结果：
+
+```java
+加密:qANksk5lvqM=
+解密:硅谷
+```
+
+**修改成 `CBC` 加密 模式 **
+
+- **方式一** **使用PKCS5Padding填充**
+
+```java
+String transformation = "DES/CBC/PKCS5Padding";
+```
+
+运行 ，报错，需要添加一个参数
+
+```java
+Exception in thread "main" java.security.InvalidKeyException: Parameters missing
+	at com.sun.crypto.provider.CipherCore.init(CipherCore.java:470)
+	at com.sun.crypto.provider.DESCipher.engineInit(DESCipher.java:186)
+	at javax.crypto.Cipher.implInit(Cipher.java:802)
+	at javax.crypto.Cipher.chooseProvider(Cipher.java:864)
+	at javax.crypto.Cipher.init(Cipher.java:1249)
+	at javax.crypto.Cipher.init(Cipher.java:1186)
+	at com.gujiangbo.application.des.DesTest02.decryptDES(DesTest02.java:79)
+	at com.gujiangbo.application.des.DesTest02.main(DesTest02.java:26)
+```
+
+修改加密代码：
+
+```java
+ String transformation = "DES/CBC/PKCS5Padding"; 
+//加密时加上这个
+// 初始向量，参数表示跟谁进行异或，初始向量的长度必须是8位
+IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+// 初始化加密模式和算法
+ cipher.init(Cipher.ENCRYPT_MODE, sks, iv);
+
+//解密加上这个
+IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+cipher.init(Cipher.DECRYPT_MODE, sks,iv);
+```
+
+修改后运行结果：
+
+```shell
+加密:8Ze/OtPlSaU=
+解密:硅谷
+```
+
+- **方式二 使用NoPadding填充**
+
+```java
+String transformation = "DES/CBC/NoPadding";
+```
+
+运行报错 `NoPadding` 这种填充模式 **原文必须是8个字节的整倍数**
+
+```java
+Exception in thread "main" javax.crypto.IllegalBlockSizeException: Input length not multiple of 8 bytes
+	at com.sun.crypto.provider.CipherCore.finalNoPadding(CipherCore.java:1041)
+	at com.sun.crypto.provider.CipherCore.doFinal(CipherCore.java:1009)
+	at com.sun.crypto.provider.CipherCore.doFinal(CipherCore.java:847)
+	at com.sun.crypto.provider.DESCipher.engineDoFinal(DESCipher.java:314)
+	at javax.crypto.Cipher.doFinal(Cipher.java:2165)
+	at com.gujiangbo.application.des.DesTest02.encryptDES(DesTest02.java:55)
+	at com.gujiangbo.application.des.DesTest02.main(DesTest02.java:24)
+```
+
+修改运行
+
+将原文修改成8个字节的整数倍
+
+```java
+String input = "硅谷12";
+```
+
+结果输出：
+
+```java
+加密:Y6htKI/ceJg=
+解密:硅谷12
+```
+
+注意：在使用此种填充方式时，必须要在加密与解密中使用IvParameterSpec类，否则报错。
+
+```java
+   /**
+     * 使用DES加密数据
+     *
+     * @param input          : 原文
+     * @param key            : 密钥(DES,密钥的长度必须是8个字节)
+     * @param transformation : 获取Cipher对象的算法
+     * @param algorithm      : 获取密钥的算法
+     * @return : 密文
+     * @throws Exception
+     */
+    private static String encryptDES(String input, String key, String transformation, String algorithm) throws Exception {
+        // 获取加密对象
+        Cipher cipher = Cipher.getInstance(transformation);
+        // 创建加密规则
+        // 第一个参数key的字节
+        // 第二个参数表示加密算法
+        SecretKeySpec sks = new SecretKeySpec(key.getBytes(), algorithm);
+        // ENCRYPT_MODE：加密模式
+        // DECRYPT_MODE: 解密模式
+        // 初始向量，参数表示跟谁进行异或，初始向量的长度必须是8位
+        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+        // 初始化加密模式和算法
+        cipher.init(Cipher.ENCRYPT_MODE, sks,iv);
+        // 加密
+        byte[] bytes = cipher.doFinal(input.getBytes());
+
+        // 输出加密后的数据
+        String encode = Base64.encode(bytes);
+
+        return encode;
+    }
+```
+
+解密代码：
+
+```java
+   /**
+     * 使用DES解密
+     *
+     * @param input          : 密文
+     * @param key            : 密钥
+     * @param transformation : 获取Cipher对象的算法
+     * @param algorithm      : 获取密钥的算法
+     * @throws Exception
+     * @return: 原文
+     */
+    private static String decryptDES(String input, String key, String transformation, String algorithm) throws Exception {
+        // 1,获取Cipher对象
+        Cipher cipher = Cipher.getInstance(transformation);
+        // 指定密钥规则
+        SecretKeySpec sks = new SecretKeySpec(key.getBytes(), algorithm);
+        IvParameterSpec iv = new IvParameterSpec(key.getBytes());
+        cipher.init(Cipher.DECRYPT_MODE, sks,iv);
+        // 3. 解密
+        byte[] bytes = cipher.doFinal(Base64.decode(input));
+
+        return new String(bytes);
+    }
+```
+
+在测试 `AES` 的时候需要注意，key需要16个字节，加密向量也需要16个字节 ，其他方式跟 `DES` 一样
+
+### 1.9 消息摘要
+
+- 消息摘要（Message Digest）又称为数字摘要(Digital Digest)
+- 它是一个唯一对应一个消息或文本的固定长度的值，它由一个单向Hash加密函数对消息进行作用而产生
+- 使用数字摘要生成的值是不可以篡改的，为了保证文件或者值的安全
+
+#### 1.9.1 特点
+
+无论输入的消息有多长，计算出来的消息摘要的长度总是固定的。例如应用MD5算法摘要的消息有128个比特位，用SHA-1算法摘要的消息最终有160比特位的输出
+
+只要输入的消息不同，对其进行摘要以后产生的摘要消息也必不相同；但相同的输入必会产生相同的输出
+
+消息摘要是单向、不可逆的
+
+常见算法 :
+
+```shell
+- MD5
+- SHA1
+- SHA256
+- SHA512
+```
+
+**常见的工具数字摘要**
+
+我们经常使用tomcat,在官网下载页面 我们可以查看到下载链接后面会有sha1,sha512 等字样，这些都是对软件的一种数字摘要
+
+#### 1.9.2 获取字符串消息摘要
+
+```java
+package com.gujiangbo.application.digest;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+import java.security.MessageDigest;
+/**
+ * 数字摘要
+ *
+ * @author gujiangbo
+ */
+public class DigestTest {
+    public static void main(String[] args) throws Exception {
+        /**
+         * 原文
+         */
+        String msg = "顾江波";
+        /**
+         * 摘要算法
+         */
+        String algorithm = "MD5";
+        /**
+         * 获取数字摘要对象
+         */
+        MessageDigest messageDigest = MessageDigest.getInstance(algorithm);
+        /**
+         * 获取数字摘要结果字符数组
+         */
+        byte[] digest = messageDigest.digest();
+        /**
+         * 使用Base64对数组编码
+         */
+        String encode = Base64.encode(digest);
+        System.out.println(encode);
+    }
+}
+```
+
+输出结果：
+
+```shell
+1B2M2Y8AsgTpgAmY7PhCfg==
+```
+
+如果结果不用Base64编码，则输出为：��ُ��	���B~   乱码~
+
+#### 1.9.3 将数字摘要转换成16进制
+
+```java
+package com.gujiangbo.application.digest;
+
+import java.security.MessageDigest;
+
+/**
+ * 数字摘要转换成16进制
+ *
+ * @author gujiangbo
+ */
+public class DigestTest02 {
+
+    public static void main(String[] args) throws Exception {
+        /**
+         * 原文
+         */
+        String msg = "顾江波";
+        /**
+         * 摘要算法
+         */
+        String algorithm = "MD5";
+        /**
+         * 获取数字摘要对象
+         */
+        MessageDigest messageDigest = MessageDigest.getInstance(algorithm);
+        /**
+         * 获取数字摘要结果字符数组
+         */
+        byte[] digest = messageDigest.digest();
+        StringBuilder sb = new StringBuilder();
+
+        for (byte b : digest) {
+            // 转成 16进制
+            String s = Integer.toHexString(b & 0xff);
+            //System.out.println(s);
+            if (s.length() == 1) {
+                // 如果生成的字符只有一个，前面补0
+                s = "0" + s;
+            }
+            sb.append(s);
+        }
+        System.out.println(sb.toString());
+    }
+}
+```
+
+输出结果：d41d8cd98f00b204e9800998ecf8427e
+
+#### 1.9.4 其他的数字摘要算法
+
+```JAVA
+package com.gujiangbo.application.digest;
+import java.security.MessageDigest;
+public class DigestTest03 {
+    public static void main(String[] args) throws Exception {
+        // 原文
+        String input = "aa";
+        // 算法
+        String algorithm = "MD5";
+        // 获取数字摘要对象
+        String md5 = getDigest(input, "MD5");
+        System.out.println("MD5:" + md5);
+
+        String sha1 = getDigest(input, "SHA-1");
+        System.out.println("SHA-1:" + sha1);
+
+        String sha256 = getDigest(input, "SHA-256");
+        System.out.println("SHA-256:" + sha256);
+
+        String sha512 = getDigest(input, "SHA-512");
+        System.out.println("SHA-512:" + sha512);
+    }
+
+    private static String toHex(byte[] digest) throws Exception {
+//        System.out.println(new String(digest));
+        // base64编码
+//        System.out.println(Base64.encode(digest));
+        // 创建对象用来拼接
+        StringBuilder sb = new StringBuilder();
+
+        for (byte b : digest) {
+            // 转成 16进制
+            String s = Integer.toHexString(b & 0xff);
+            if (s.length() == 1) {
+                // 如果生成的字符只有一个，前面补0
+                s = "0" + s;
+            }
+            sb.append(s);
+        }
+        System.out.println("16进制数据的长度：" + sb.toString().getBytes().length);
+        return sb.toString();
+    }
+    private static String getDigest(String input, String algorithm) throws Exception {
+        MessageDigest messageDigest = MessageDigest.getInstance(algorithm);
+        // 消息数字摘要
+        byte[] digest = messageDigest.digest(input.getBytes());
+        System.out.println("密文的字节长度:" + digest.length);
+        return toHex(digest);
+    }
+}
+```
+
+输出结果：
+
+```java
+密文的字节长度:16
+16进制数据的长度：32
+MD5:4124bc0a9335c27f086f24ba207a4912
+密文的字节长度:20
+16进制数据的长度：40
+SHA-1:e0c9035898dd52fc65c41454cec9c4d2611bfb37
+密文的字节长度:32
+16进制数据的长度：64
+SHA-256:961b6dd3ede3cb8ecbaacbd68de040cd78eb2ed5889130cceb4c49268ea4d506
+密文的字节长度:64
+16进制数据的长度：128
+SHA-512:f6c5600ed1dbdcfdf829081f5417dccbbd2b9288e0b427e65c8cf67e274b69009cd142475e15304f599f429f260a661b5df4de26746459a3cef7f32006e5d1c1
+```
+
+总结：
+
+- MD5算法 : 摘要结果16个字节, 转16进制后32个字节
+- SHA1算法 : 摘要结果20个字节, 转16进制后40个字节
+- SHA256算法 : 摘要结果32个字节, 转16进制后64个字节
+- SHA512算法 : 摘要结果64个字节, 转16进制后128个字节
+
+### 1.10 非对称加密
+
+**简介：**
+
+① 非对称加密算法又称`现代加密算法`。
+
+② 非对称加密是计算机通信安全的基石，保证了加密数据`不会被破解`。
+
+③ 与对称加密算法不同，非对称加密算法需要两个密钥：`公开密钥(publickey)` 和`私有密(privatekey)`
+
+④ 公开密钥和私有密钥是`一对`
+
+⑤ 如果用`公开密钥`对数据进行`加密`，只有用`对应的私有密钥`才能`解密`。
+
+⑥ 如果用`私有密钥`对数据进行`加密`，只有用`对应的公开密钥`才能`解密`。
+
+⑦ 因为加密和解密使用的是两个`不同`的密钥，所以这种算法叫作`非对称加密算法`。
+
+- 示例
+
+  - 首先生成密钥对, 公钥为(5,14), 私钥为(11,14)
+  - 现在A希望将原文2发送给B
+  - A使用公钥加密数据. 2的5次方mod 14 = 4 , 将密文4发送给B
+  - B使用私钥解密数据. 4的11次方mod14 = 2, 得到原文2
+
+- 特点
+
+  - 加密和解密使用不同的密钥
+  - 如果使用私钥加密, 只能使用公钥解密
+  - 如果使用公钥加密, 只能使用私钥解密
+  - 处理数据的速度较慢, 因为安全级别高
+
+- 常见算法
+
+   
+
+  - RSA
+  - ECC
+
+#### 1.10.1 生成公钥和私钥
+
+```java
+package com.gujiangbo.application.rsa;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+
+/**
+ * 非对称加密RSA
+ *
+ * @author gujiangbo
+ */
+public class RsaTest02 {
+
+    public static void main(String[] args) throws Exception {
+        /**
+         * 加密算法
+         */
+        String algorithm = "RSA";
+        /**
+         * 创建密钥对生成器对象
+         */
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+        /**
+         * 生成密钥对
+         */
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        /**
+         * 生成私钥
+         */
+        PrivateKey privateKey = keyPair.getPrivate();
+        /**
+         * 生成公钥
+         */
+        PublicKey publicKey = keyPair.getPublic();
+
+        /**
+         * 获取私钥字节数组
+         */
+        byte[] privateKeyEncoded = privateKey.getEncoded();
+
+        /**
+         * 获取公钥字节数组
+         */
+        byte[] publicKeyEncoded = publicKey.getEncoded();
+
+        /**
+         * 使用Base64对数组进行编码，防止出现乱码
+         */
+        System.out.println(Base64.encode(privateKeyEncoded));
+        System.out.println(Base64.encode(publicKeyEncoded));
+    }
+}
+```
+
+输出结果：
+
+```shell
+MIICeQIBADANBgkqhkiG9w0BAQEFAASCAmMwggJfAgEAAoGBAK2V7SvD8sLjNXtpehi9nv11vWbH
+B8nui5DCz++17ywdH+IIaSIZuXWZYTtHy6C+TRKVSMST0vAvSFYWoddOrDw1OSfnN3dX8b6JcenB
+LkJY/B/dzCqfc012Ax0MBaAVLX5e/2gfe9U0vehTwpwI6L0N06e9T1QBsIy059AL3XEvAgMBAAEC
+gYEAiSMpfKoR4GYgmp96FpG4SgX63Hfhb2dGW9eM75SMoA1iYvDCHm60VnQWnP7boOK3gTbvhl5D
+B/5S57B5q+A7sQhDDERj5rwEtta7nvOhPrAq6LN9nWA5i6XzDEPktTCTGO/j/M1J4+trnHGE/Jpa
+zpVmSPRgK7QoaPnewA1QUAECQQDUa6an1ZCHzzsEDHBuaVT3u62q/c7U8d/EGDK+Qfm5h58D4+/X
+YsSXd86d8iUNwAtvU7THGXzWYZsUtTwZBCFhAkEA0TKqCBVtJGjUE9yBojHZrKzcsD5LgUtqsPmK
+JpmY9lidNIROlZe2zFi7RF0Nc5tb8SVMEOeFbVhLAkF7DGZMjwJBAJSewRp6PMYYgqUBgwRtI+q0
+X/zb2YN5u2K6v34IMQ3SyrnxF5St4PhM9b3idnRZYmbAvSH0PjjMT7G8X9Ds5+ECQQCKw+ClnBDZ
+pe+HfS1AOXD6aW+6OJg9G5mZ6u0Izbn5Lq6Yt2qpMAnBYtpVbqQNm3BRdTwPuoN3FKosxOKqRvFh
+AkEAsmYVz7S/bMfVJOO6IJXYXMflX99J2wA2MIRLI3HUpGrV6YUh4Ey1dwcg6StjzWwL9CPHhGu7
+gd03aqN223T7gw==
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCtle0rw/LC4zV7aXoYvZ79db1mxwfJ7ouQws/v
+te8sHR/iCGkiGbl1mWE7R8ugvk0SlUjEk9LwL0hWFqHXTqw8NTkn5zd3V/G+iXHpwS5CWPwf3cwq
+n3NNdgMdDAWgFS1+Xv9oH3vVNL3oU8KcCOi9DdOnvU9UAbCMtOfQC91xLwIDAQAB
+```
+
+#### 1.10.2 使用公钥加密，私钥解密
+
+```java
+package com.gujiangbo.application.rsa;
+
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+
+import javax.crypto.Cipher;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.HashMap;
+
+/**
+ * 使用公钥加密，私钥解密
+ *
+ * @author gujiangbo
+ */
+public class RsaTest03 {
+
+    public static void main(String[] args) throws Exception {
+        /**
+         * 明文
+         */
+        String msg = "锄禾日当午，汗滴禾下土；谁知盘中餐，粒粒皆辛苦。";
+        /**
+         * 加密算法
+         */
+        String algorithm = "RSA";
+        /**
+         * 获取公私钥
+         */
+        HashMap<Key, Object> map = getKey(algorithm);
+        String encryMsg = encryptRSA(msg, algorithm, (PublicKey) map.get(Key.PUBLIC));
+        System.out.println("密文:" + encryMsg);
+        String result = decryptRSA(encryMsg, algorithm, (PrivateKey) map.get(Key.PRIVATE));
+        System.out.println("明文:" + result);
+
+    }
+
+    /**
+     * 解密
+     *
+     * @param encryptMsg 密文
+     * @param algorithm  算法
+     * @param privateKey 私钥
+     * @return 返回明文
+     * @throws Exception
+     */
+    public static String decryptRSA(String encryptMsg, String algorithm, PrivateKey privateKey) throws Exception {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        byte[] msg = cipher.doFinal(Base64.decode(encryptMsg.getBytes()));
+        return new String(msg);
+    }
+    /**
+     * 加密
+     *
+     * @param msg       原文
+     * @param algorithm 算法
+     * @param publicKey 公钥
+     * @return 加密对象
+     */
+    public static String encryptRSA(String msg, String algorithm, PublicKey publicKey) throws Exception {
+        /**
+         * 生成加密器
+         */
+        Cipher cipher = Cipher.getInstance(algorithm);
+        /**
+         * 初始化加密器
+         */
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] encryptMsg = cipher.doFinal(msg.getBytes());
+        return Base64.encode(encryptMsg);
+    }
+
+    /**
+     * 获取公私钥
+     *
+     * @param algorithm 加密算法
+     * @return 公私钥Hash
+     */
+    public static HashMap<Key, Object> getKey(String algorithm) throws Exception {
+        HashMap<Key, Object> map = new HashMap<>();
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        PublicKey publicKey = keyPair.getPublic();
+        PrivateKey privateKey = keyPair.getPrivate();
+        map.put(Key.PRIVATE, privateKey);
+        map.put(Key.PUBLIC, publicKey);
+        return map;
+    }
+
+    /**
+     * 公私钥枚举值
+     */
+    enum Key {
+        PUBLIC, PRIVATE
+    }
+}
+```
+
+结果输出：
+
+```shell
+密文:SaIypz+LZse+6Z1AB+M1qrOoGe1vugsFpVoDNGRSZbf6ouXvTwjaRg46eZ4QXh0vAvItIQp8RKuG
+3/NqM26+THkegNkxbfqeU9mkCyn9OG+yKdsbIaeXg3qamJ9Pm3+ME72ISg/NGF10v7DdwQwrxydE
+wut/8wf7FI9gmfOmPdw=
+明文:锄禾日当午，汗滴禾下土；谁知盘中餐，粒粒皆辛苦。
+```
+
+#### 1.10.3 将公私钥保存本地，并读取解密
+
+```java
+package com.gujiangbo.application.rsa;
+
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+import org.apache.commons.io.FileUtils;
+
+import javax.crypto.Cipher;
+import java.io.File;
+import java.nio.charset.Charset;
+import java.security.*;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+
+/**
+ * 保存公私钥
+ *
+ * @author gujiangbo
+ */
+public class RsaTest04 {
+
+    public static void main(String[] args) throws Exception {
+        /**
+         * 明文
+         */
+        String msg = "顾江波";
+        /**
+         * 加密算法
+         */
+        String algorithm = "RSA";
+
+        /**
+         *  生成密钥对并保存在本地文件中
+         */
+
+        generateKeyToFile(algorithm, "g.pub", "g.pri");
+        PublicKey publicKey = getPublicKey("g.pub", algorithm);
+        PrivateKey privateKey = getPrivateKey("g.pri", algorithm);
+
+        String encryptMsg = encryptRSA(msg, algorithm, publicKey);
+        System.out.println("密文:" + encryptMsg);
+        String decryptMsg = decryptRSA(encryptMsg, algorithm, privateKey);
+        System.out.println("明文:" + decryptMsg);
+
+    }
+
+    /**
+     * 获取公钥
+     *
+     * @param pubPath   公钥路径
+     * @param algorithm 算法
+     * @return 返回公钥key对象
+     */
+    public static PublicKey getPublicKey(String pubPath, String algorithm) throws Exception {
+        String publicKeyString = FileUtils.readFileToString(new File(pubPath), Charset.defaultCharset());
+        KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(Base64.decode(publicKeyString));
+        return keyFactory.generatePublic(keySpec);
+    }
+
+    /**
+     * 读取私钥
+     *
+     * @param priPath   私钥路径
+     * @param algorithm 算法
+     * @return 返回私钥key对象
+     */
+    public static PrivateKey getPrivateKey(String priPath, String algorithm) throws Exception {
+        String privateKeyString = FileUtils.readFileToString(new File(priPath), Charset.defaultCharset());
+        //创建Key工厂
+        KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+        //创建私钥key规则
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(Base64.decode(privateKeyString));
+        return keyFactory.generatePrivate(keySpec);
+    }
+
+    /**
+     * 解密
+     *
+     * @param encryptMsg 密文
+     * @param algorithm  算法
+     * @param privateKey 私钥
+     * @return 返回明文
+     * @throws Exception
+     */
+    public static String decryptRSA(String encryptMsg, String algorithm, PrivateKey privateKey) throws Exception {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        byte[] msg = cipher.doFinal(Base64.decode(encryptMsg.getBytes()));
+        return new String(msg);
+    }
+
+    /**
+     * 加密
+     *
+     * @param msg       原文
+     * @param algorithm 算法
+     * @param publicKey 公钥
+     * @return 加密对象
+     */
+    public static String encryptRSA(String msg, String algorithm, PublicKey publicKey) throws Exception {
+
+        /**
+         * 生成加密器
+         */
+        Cipher cipher = Cipher.getInstance(algorithm);
+        /**
+         * 初始化加密器
+         */
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] encryptMsg = cipher.doFinal(msg.getBytes());
+        return Base64.encode(encryptMsg);
+    }
+    /**
+     * 生成公私钥
+     *
+     * @param algorithm 算法
+     * @param pubPath   公钥路径
+     * @param priPath   私钥路径
+     * @throws Exception
+     */
+    public static void generateKeyToFile(String algorithm, String pubPath, String priPath) throws Exception {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+        /**
+         * 获取密钥对
+         */
+        KeyPair keyPair = keyPairGenerator.genKeyPair();
+        PrivateKey privateKey = keyPair.getPrivate();
+        PublicKey publicKey = keyPair.getPublic();
+        byte[] privateKeyEncoded = privateKey.getEncoded();
+        byte[] publicKeyEncoded = publicKey.getEncoded();
+        /**
+         * 保存公钥,私钥
+         */
+        FileUtils.writeStringToFile(new File(pubPath), Base64.encode(publicKeyEncoded), Charset.forName("UTF-8"));
+        FileUtils.writeStringToFile(new File(priPath), Base64.encode(privateKeyEncoded), Charset.forName("UTF-8"));
+    }
+}
+```
+
+结果：
+
+```she
+密文:oH1skUkTUBtLmFlerG4PojED1IraF+VTXf6ZiogZWazOIf61LfDYbjn/tIp6TXv/sAwqe6xPJYcP
+cw407C89RZhxjOPoAJjSXm55s2sTWUd9i8MB+uDbp63syYiE6a94UygvAsxVfCfX/40t7KruglNH
+zLV8+iZmVE+HXRYp3g8=
+明文:顾江波
+```
